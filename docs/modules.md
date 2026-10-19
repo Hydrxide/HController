@@ -106,7 +106,7 @@ With Pillow, an image in `RGB` mode gives exactly this body from `image.tobytes(
 
 ### How it's called
 
-- **Only while the app is on the panel:** frames are requested `display.fps` times a second (default 10) and not at all otherwise. Nothing tells the app when it gains or loses the panel.
+- **Only while the app is on the panel:** frames are requested `display.fps` times a second (default 10, adjustable from 1 to 60 on the dashboard) and not at all otherwise. Nothing tells the app when it gains or loses the panel.
 - **One request at a time, with a 1 s timeout:** a slow answer lowers the frame rate. Aim for a few milliseconds per frame; nhlscreen renders in under 1 ms and the template on this page in about 1 ms.
 - **Errors:** a non-200 status, a wrong size or a timeout shows an error on the dashboard. The panel keeps the last good frame for 2 s, then goes black. Frame errors don't mark the app unhealthy; only `health` does that.
 

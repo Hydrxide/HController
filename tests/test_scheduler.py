@@ -34,7 +34,10 @@ class FakeRegistry:
 
 class FakeSource:
     def __init__(self):
-        self.module = self.url = self.error = None
+        self.module = self.url = self.error = self.fps = None
+
+    def set_fps(self, fps):
+        self.fps = fps
 
     def set_target(self, module, url):
         self.module, self.url = module, url
@@ -167,6 +170,21 @@ def test_brightness_from_slider_and_windows(tmp_path):
     assert snapshot["brightness"] == 25 and snapshot["base_brightness"] == 40
     with pytest.raises(ValueError):
         h.scheduler.set_brightness(0)
+
+
+def test_frame_rate_is_saved_and_applied(tmp_path):
+    h = Harness(tmp_path, local(19, 12), config=make_config(fps=12))
+    assert h.source.fps == 12 and h.scheduler.snapshot()["fps"] == 12
+    h.scheduler.set_fps(25)
+    assert h.source.fps == 25 and h.state.get("fps") == 25
+    events = []
+    while not h.events.empty():
+        events.append(h.events.get_nowait())
+    assert any(e["type"] == "display" and e["display"]["fps"] == 25 for e in events)  # dashboards update
+    with pytest.raises(ValueError):
+        h.scheduler.set_fps(0.5)
+    again = Harness(tmp_path, local(19, 12), config=make_config(fps=12))  # restarted: the saved rate wins
+    assert again.source.fps == 25
 
 
 def test_snapshot_says_what_comes_next(tmp_path):

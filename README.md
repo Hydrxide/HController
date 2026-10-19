@@ -30,7 +30,8 @@ The dashboard has a section for each kind of device HController drives (just the
 
 - **LED panel:**
   - A live LED-dot preview of exactly what the panel shows, with what's on now and why, and what comes next. The preview only streams while the section is open.
-  - The **Show now** buttons and the brightness slider.
+  - The **Show now** buttons.
+  - **Settings:** the brightness slider, and the frame rate (how many frames a second HController fetches from the app on the panel).
   - The **Schedule:** a 24-hour strip of today's plan, and the list of time windows. You can add, reorder, edit and remove windows here.
 - **Apps:** each module's status, uptime and restarts, plus Start / Stop / Restart, an **Open** link to the app's own page, its live **Logs**, and its **Config file** editor.
 
@@ -63,7 +64,7 @@ modules:
     log_ignore: ['"GET /(render/frame|health) HTTP/[\d.]+" 200']
 ```
 
-**Frames.** `display.frame` returns the panel's pixels as raw RGB bytes (width × height × 3), with the size in `X-Width` / `X-Height` headers, exactly like nhlscreen's `GET /render/frame`. HController fetches it `display.fps` times a second (default 10) from whichever app is on the panel. The app renders everything itself, including anything that animates. The frame size must match `display.width` × `display.height` (default 128 × 64).
+**Frames.** `display.frame` returns the panel's pixels as raw RGB bytes (width × height × 3), with the size in `X-Width` / `X-Height` headers, exactly like nhlscreen's `GET /render/frame`. HController fetches it `display.fps` times a second (default 10, from 1 to 60; the dashboard can change it) from whichever app is on the panel. The app renders everything itself, including anything that animates. The frame size must match `display.width` × `display.height` (default 128 × 64).
 
 **Running modules.**
 - Each module runs in the foreground in its own process group, with stdout and stderr captured; modules that daemonize themselves aren't supported.
@@ -102,7 +103,7 @@ Window fields:
 - `brightness` (optional): overrides the slider while the window is on.
 - Quote the times. Unquoted `18:30` is read by YAML 1.1 as a number, which HController understands, but quotes are clearer.
 
-Schedule edits on the dashboard are saved in `hcontroller-state.json` and take priority over `hcontroller.yaml` until **Reset to config**. The same file remembers Show now, brightness, and your Start/Stop choices, so they all survive a restart.
+Schedule edits on the dashboard are saved in `hcontroller-state.json` and take priority over `hcontroller.yaml` until **Reset to config**. The same file remembers Show now, the brightness, the frame rate, and your Start/Stop choices, so they all survive a restart. A brightness or frame rate set on the dashboard takes priority over the one in `hcontroller.yaml`.
 
 **Apps that only run around their windows.** Set `process: scheduled` on a module and it is started `warmup_seconds` (default 60) before each of its windows, then stopped when the window ends. This saves memory and CPU on the Pi. Such an app also runs:
 - while it's the default and no window applies;
@@ -119,7 +120,7 @@ It doesn't run while an `off` window higher in the list covers the time. Pressin
 | `GET /api/modules/{id}/logs?lines=200&after=N` | recent output; `after` returns only lines newer than sequence number N |
 | `GET/PUT /api/modules/{id}/config?restart=true` | the module's config file: `{"text": "..."}` |
 | `POST /api/modules/{id}/config/revert?restart=true` | put back `<name>.bak` |
-| `GET /api/display`, `PUT /api/display` | what's on the panel, why, and what's next; `{"brightness": 60}` |
+| `GET /api/display`, `PUT /api/display` | what's on the panel, why, and what's next; `{"brightness": 60}`, `{"fps": 15}`, or both |
 | `POST /api/display/show`, `DELETE /api/display/show` | Show now: `{"module": "nhlscreen"}` or `{"module": "off"}`; DELETE resumes the schedule |
 | `GET/PUT /api/display/schedule` | `{"schedule": {"windows": [...], "default": "nhlscreen"}}`; `{"schedule": null}` resets to the config |
 | `GET /api/display/timeline?date=2026-10-19` | the day's plan, assuming every app is healthy |

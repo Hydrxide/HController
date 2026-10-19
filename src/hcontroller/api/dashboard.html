@@ -57,6 +57,8 @@
   .brightness { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: #aaa; font-size: 13px; }
   .brightness input { flex: 1; accent-color: #6af; }
   .brightness span { min-width: 9em; text-align: right; }
+  .setting { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: #aaa; font-size: 13px; }
+  .setting input[type=number] { width: 5em; }
 
   /* schedule */
   .timeline { position: relative; height: 30px; margin-top: 12px; border-radius: 4px; overflow: hidden; background: #222; }
@@ -118,9 +120,16 @@
           <button class="right" id="resume" type="button" hidden>Resume schedule</button>
         </div>
         <div class="buttons" id="showNow"></div>
-        <label class="brightness">Brightness <input type="range" id="brightness" min="1" max="100"> <span id="brightnessVal"></span></label>
         <div class="msg" id="showMsg" role="status" aria-live="polite"></div>
         <p class="hint">Show now holds the panel until the schedule's next change, or until you press Resume schedule.</p>
+      </section>
+
+      <section class="card" aria-labelledby="settings-label">
+        <h3 id="settings-label">Settings</h3>
+        <label class="brightness">Brightness <input type="range" id="brightness" min="1" max="100"> <span id="brightnessVal"></span></label>
+        <label class="setting">Frame rate <input type="number" id="fps" min="1" max="60" step="1"> frames a second</label>
+        <div class="msg" id="settingsMsg" role="status" aria-live="polite"></div>
+        <p class="hint">A window's own brightness overrides the slider while that window is on. The frame rate is how often HController fetches a frame from the app on the panel: higher makes animation smoother but gives the app more work.</p>
       </section>
     </div>
 
@@ -330,6 +339,7 @@ function renderDisplay() {
 
   const slider = $('brightness');
   if (document.activeElement !== slider) slider.value = d.base_brightness;
+  if (document.activeElement !== $('fps')) $('fps').value = d.fps;
   $('brightnessVal').textContent = d.brightness !== d.base_brightness && !d.off
     ? `${d.base_brightness} (window: ${d.brightness})` : String(d.base_brightness);
 }
@@ -356,7 +366,20 @@ $('brightness').onchange = async () => {
   try {
     display = await api('PUT', '/api/display', { brightness: Number($('brightness').value) });
     renderDisplay();
-  } catch (e) { say('showMsg', e.message, true); }
+  } catch (e) { say('settingsMsg', e.message, true); }
+};
+$('fps').onchange = async () => {
+  const fps = Number($('fps').value);
+  if (!(fps >= 1 && fps <= 60)) {
+    say('settingsMsg', 'The frame rate is 1–60 frames a second', true);
+    $('fps').value = display.fps;
+    return;
+  }
+  try {
+    display = await api('PUT', '/api/display', { fps });
+    renderDisplay();
+    say('settingsMsg', `Frame rate: ${fps} a second`);
+  } catch (e) { say('settingsMsg', e.message, true); }
 };
 
 // ------------------------------------------------------------------ schedule

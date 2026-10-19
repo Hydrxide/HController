@@ -85,6 +85,7 @@ modules:
         ),
         ("modules: {a: {url: 'http://127.0.0.1:1630'}}", "HController's own"),
         ("display: {schedule: [{module: x, start: '25:00', end: '2:00'}]}", "not a time"),
+        ("display: {fps: 0.5}", "fps"),
         ("[1, 2", "while parsing"),
     ],
 )

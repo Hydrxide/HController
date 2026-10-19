@@ -19,6 +19,12 @@ def frame_route(content=FRAME, width=4, height=2, status=200):
     return respx.get(URL).respond(status, content=content, headers={"X-Width": str(width), "X-Height": str(height)})
 
 
+def test_frame_rate_sets_the_interval(source):
+    assert source.interval == pytest.approx(0.1)
+    source.set_fps(25)
+    assert source.fps == 25 and source.interval == pytest.approx(0.04)
+
+
 @respx.mock
 async def test_fetches_the_target_apps_frames(source):
     frame_route()

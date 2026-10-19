@@ -1,6 +1,6 @@
 """Choices made from the dashboard, saved next to the config in ``hcontroller-state.json``.
 
-One key per choice (``running``, ``holds``, ``schedule``, ``override``, ``brightness``), so each
+One key per choice (``running``, ``holds``, ``schedule``, ``override``, ``brightness``, ``fps``), so each
 can be reset on its own without touching the others; same idea as nhlscreen's state file.
 """
 

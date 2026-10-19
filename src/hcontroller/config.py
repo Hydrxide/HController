@@ -32,7 +32,7 @@ class DisplayConfig(BaseModel):
 
     width: int = Field(128, gt=0, le=1024)
     height: int = Field(64, gt=0, le=1024)
-    fps: float = Field(10, gt=0, le=60)
+    fps: float = Field(10, ge=1, le=60)  # at least 1: the LED driver blanks the panel after 5 s without frames
     brightness: int = Field(70, ge=1, le=100)
     default: str | None = None  # app shown when no window applies, or "off"; unset = first app with a display
     schedule: list[Window] = Field(default_factory=list)

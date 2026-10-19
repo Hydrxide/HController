@@ -9,7 +9,7 @@ timezone: America/Toronto   # schedule times are local to this zone
 display:                     # the shared LED panel
   width: 128
   height: 64
-  fps: 10                    # frames pulled from the app on the panel, per second
+  fps: 10                    # frames pulled from the app on the panel, per second (1-60; the dashboard can change it)
   brightness: 70             # 1-100; the dashboard slider changes it
   default: nhlscreen         # shown when no window applies: an app, or "off" (unset = first app with a display)
   # Ordered: the first window that's active now and whose app is healthy gets the panel. If its

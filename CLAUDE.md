@@ -44,7 +44,7 @@ hcontroller.yaml -> config.py (pydantic) ──► controller.py wires:
 | Module | Role |
 |---|---|
 | `display/schedule.py` | **Pure** schedule logic: `resolve`, `wanted`, `next_change`, `next_wanted_change`, `timeline`. All instants are compared in UTC: two datetimes sharing a `ZoneInfo` compare wall-clock time, which breaks on DST days. Tested with fixed datetimes, including both 2026 DST changes. |
-| `display/scheduler.py` | Ticks every second and on every module status change; applies the decision (source target, brightness), pushes `wanted` to the registry, persists Show now / schedule / brightness. |
+| `display/scheduler.py` | Ticks every second and on every module status change; applies the decision (source target, brightness), pushes `wanted` to the registry, persists Show now / schedule / brightness / frame rate (`set_fps` also retimes `FrameSource`). |
 | `modules/registry.py` | Desired state per module: `always` = autostart or the saved Start/Stop (`state.running`); `scheduled` = scheduler's `wanted`, unless a dashboard hold (`state.holds`) applies until the app's next scheduled change. Acts only when desired state *changes*, so a module that exits under its restart policy stays stopped. |
 | `modules/local.py` | `start_new_session` so stop signals the whole group and terminal Ctrl+C doesn't hit modules; after any exit it SIGKILLs leftovers in the group; a port probe before spawning reports `conflict` instead of a duplicate. |
 | `display/source.py` | Keeps the last good frame for 2s through fetch errors, then black; dedupes identical frames but resends each second (the LED driver blanks after 5s of silence). |

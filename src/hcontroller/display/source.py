@@ -33,13 +33,18 @@ class FrameSource:
     def __init__(self, hub: FrameHub, *, http: HttpGetter, fps: float) -> None:
         self.hub = hub
         self.http = http
-        self.interval = 1.0 / fps
+        self.set_fps(fps)
         self.black = bytes(hub.width * hub.height * 3)
         self.module: str | None = None
         self.url: str | None = None
         self.error: str | None = None
         self.on_error: Callable[[], None] | None = None  # called when ``error`` changes
         self._last_good = 0.0
+
+    def set_fps(self, fps: float) -> None:
+        """Frames fetched per second; takes effect from the next frame."""
+        self.fps = fps
+        self.interval = 1.0 / fps
 
     def set_target(self, module: str | None, url: str | None) -> None:
         if (module, url) == (self.module, self.url):

@@ -33,7 +33,8 @@ class ShowNow(BaseModel):
 
 
 class DisplaySettings(BaseModel):
-    brightness: int = Field(ge=1, le=100)
+    brightness: int | None = Field(None, ge=1, le=100)
+    fps: float | None = Field(None, ge=1, le=60)  # frames fetched from the app on the panel, per second
 
 
 class ScheduleIn(BaseModel):
@@ -168,7 +169,10 @@ def create_app(controller: Controller, manage_lifecycle: bool = True) -> FastAPI
 
     @app.put("/api/display")
     def put_display(body: DisplaySettings) -> dict[str, Any]:
-        scheduler.set_brightness(body.brightness)
+        if body.brightness is not None:
+            scheduler.set_brightness(body.brightness)
+        if body.fps is not None:
+            scheduler.set_fps(body.fps)
         return scheduler.snapshot()
 
     @app.post("/api/display/show")

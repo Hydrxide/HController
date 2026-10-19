@@ -100,6 +100,15 @@ def test_show_now_and_brightness(offline):
     assert offline.put("/api/display", json={"brightness": 35}).json()["base_brightness"] == 35
 
 
+def test_frame_rate(offline):
+    assert offline.get("/api/display").json()["fps"] == 10
+    assert offline.put("/api/display", json={"fps": 0}).status_code == 422
+    assert offline.put("/api/display", json={"fps": 61}).status_code == 422
+    both = offline.put("/api/display", json={"fps": 20, "brightness": 50}).json()
+    assert both["fps"] == 20 and both["base_brightness"] == 50
+    assert offline.put("/api/display", json={"brightness": 60}).json()["fps"] == 20  # one setting leaves the other
+
+
 def test_timeline_and_frame(offline):
     timeline = offline.get("/api/display/timeline").json()
     assert timeline["segments"][0]["module"] in ("app", None) and 0 <= timeline["now"] <= 1

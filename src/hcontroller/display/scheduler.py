@@ -59,6 +59,8 @@ class DisplayScheduler:
         self.windows, self.default = self._load_schedule()
         self.override = self._load_override()
         self.brightness = self._load_brightness()
+        self.fps = self._load_fps()
+        self.source.set_fps(self.fps)
         self.decision: Decision | None = None
 
     # ------------------------------------------------------------------ saved choices
@@ -93,6 +95,12 @@ class DisplayScheduler:
         if isinstance(value, int) and 1 <= value <= 100:
             return value
         return self.config.display.brightness
+
+    def _load_fps(self) -> float:
+        value = self.state.get("fps")
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and 1 <= value <= 60:
+            return value
+        return self.config.display.fps
 
     def warmups(self) -> dict[str, float]:
         return {
@@ -182,6 +190,14 @@ class DisplayScheduler:
         self.tick()
         self.publish()
 
+    def set_fps(self, value: float) -> None:
+        if not 1 <= value <= 60:
+            raise ValueError("the frame rate is 1-60 a second")
+        self.fps = value
+        self.state.set("fps", value)
+        self.source.set_fps(value)
+        self.publish()
+
     def next_wanted_change(self, module: str) -> datetime | None:
         spec = self.config.modules[module]
         return sched.next_wanted_change(
@@ -233,7 +249,7 @@ class DisplayScheduler:
             "frame_error": self.source.error,
             "width": self.hub.width,
             "height": self.hub.height,
-            "fps": self.config.display.fps,
+            "fps": self.fps,
             "timezone": self.config.timezone,
         }
 
