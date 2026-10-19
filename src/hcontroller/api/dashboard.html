@@ -9,11 +9,25 @@
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   body { margin: 0; padding: 16px; background: #111; color: #ddd; font: 14px/1.4 system-ui, sans-serif; }
-  h1 { font-size: 16px; margin: 0 0 12px; color: #999; font-weight: 500; }
-  h2 { font-size: 15px; margin: 0; color: #eee; font-weight: 600; }
+  h1 { font-size: 16px; margin: 0 0 4px; color: #999; font-weight: 500; }
+  h2, h3 { font-size: 15px; margin: 0; color: #eee; font-weight: 600; }
   .status { float: right; font-size: 12px; }
+
+  /* sections: one per kind of device (the LED panel so far), then Apps; each collapses */
+  .section { margin-top: 18px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 4px 0 8px;
+                  border-bottom: 1px solid #2a2a2a; cursor: pointer; }
+  .section-head h2 { font-size: 17px; }
+  .toggle, .toggle:hover:not(:disabled) { background: none; border: 0; border-radius: 4px; padding: 2px 4px 2px 2px; color: #eee;
+                                          font: inherit; display: inline-flex; align-items: center; gap: 10px; }
+  .toggle::before { content: ''; width: 7px; height: 7px; border-right: 2px solid #999; border-bottom: 2px solid #999;
+                    transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
+  .section.collapsed .toggle::before { transform: rotate(-45deg); }
+  .section-sum { color: #999; font-size: 13px; }
+  .section:not(.collapsed) .section-sum { display: none; }
+  .section-body { margin-top: 14px; }
   .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
   .panel { background: #000; border: 6px solid #222; border-radius: 6px; padding: 6px; line-height: 0; }
   .panel canvas { width: 100%; height: auto; aspect-ratio: 2 / 1; display: block; }
   .now { margin-top: 8px; font-size: 13px; color: #aaa; }
@@ -68,8 +82,8 @@
   .default-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; color: #aaa; font-size: 13px; }
 
   /* apps */
-  .module { border-top: 1px solid #262626; padding: 12px 0 4px; }
-  .module:first-child { border-top: 0; padding-top: 8px; }
+  .apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 16px; align-items: start; }
+  .apps > .card { margin-top: 0; }
   .badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; background: #333; color: #ddd; }
   .badge.good { background: #1d5e2e; color: #d6ffe0; }
   .badge.bad { background: #6a1f1f; color: #ffd9d9; }
@@ -86,54 +100,69 @@
 </head>
 <body>
 <h1>HController <span class="status" id="status">connecting…</span></h1>
-<div class="wrap">
-  <div class="col">
-    <div class="panel"><canvas id="led" width="768" height="384" aria-label="LED panel preview"></canvas></div>
-    <div class="now" id="now" role="status" aria-live="polite"></div>
 
-    <section class="card" aria-labelledby="show-label">
-      <div class="head">
-        <h2 id="show-label">Show now</h2>
-        <button class="right" id="resume" type="button" hidden>Resume schedule</button>
-      </div>
-      <div class="buttons" id="showNow"></div>
-      <label class="brightness">Brightness <input type="range" id="brightness" min="1" max="100"> <span id="brightnessVal"></span></label>
-      <div class="msg" id="showMsg" role="status" aria-live="polite"></div>
-      <p class="hint">Show now holds the panel until the schedule's next change, or until you press Resume schedule.</p>
-    </section>
+<!-- One section per kind of device HController drives (only the LED panel so far), then Apps. -->
+<section class="section" data-section="led" aria-labelledby="led-title">
+  <header class="section-head">
+    <h2 id="led-title"><button class="toggle" type="button" aria-expanded="true" aria-controls="led-body">LED panel</button></h2>
+    <span class="section-sum" id="ledSum"></span>
+  </header>
+  <div class="section-body wrap" id="led-body">
+    <div class="col">
+      <div class="panel"><canvas id="led" width="768" height="384" aria-label="LED panel preview"></canvas></div>
+      <div class="now" id="now" role="status" aria-live="polite"></div>
 
-    <section class="card" aria-labelledby="sched-label">
-      <div class="head">
-        <h2 id="sched-label">Schedule</h2>
-        <span class="sub" id="schedSource"></span>
-        <button class="right" id="resetSched" type="button" hidden>Reset to config</button>
-      </div>
-      <div class="timeline" id="timeline" aria-label="Today's schedule"></div>
-      <div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
-      <div class="table-wrap">
-        <table class="windows">
-          <thead><tr><th>#</th><th>App</th><th>Days</th><th>From</th><th>To</th><th title="Panel brightness while this window is on (blank = the slider)">Bright</th><th></th></tr></thead>
-          <tbody id="windows"></tbody>
-        </table>
-      </div>
-      <div class="buttons"><button id="addWindow" type="button">Add window</button></div>
-      <label class="default-row">When no window applies, show <select id="defaultApp"></select></label>
-      <div class="buttons">
-        <button class="primary" id="saveSched" type="button" disabled>Save schedule</button>
-        <button id="undoSched" type="button" hidden>Discard changes</button>
-      </div>
-      <div class="msg" id="schedMsg" role="status" aria-live="polite"></div>
-      <p class="hint">Windows are checked top to bottom: the first one that's on now and whose app is healthy gets the panel. If its app is down, the next window does, then the default. A "To" time earlier than "From" runs past midnight. Times are <span id="tz"></span>.</p>
-    </section>
+      <section class="card" aria-labelledby="show-label">
+        <div class="head">
+          <h3 id="show-label">Show now</h3>
+          <button class="right" id="resume" type="button" hidden>Resume schedule</button>
+        </div>
+        <div class="buttons" id="showNow"></div>
+        <label class="brightness">Brightness <input type="range" id="brightness" min="1" max="100"> <span id="brightnessVal"></span></label>
+        <div class="msg" id="showMsg" role="status" aria-live="polite"></div>
+        <p class="hint">Show now holds the panel until the schedule's next change, or until you press Resume schedule.</p>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card" aria-labelledby="sched-label">
+        <div class="head">
+          <h3 id="sched-label">Schedule</h3>
+          <span class="sub" id="schedSource"></span>
+          <button class="right" id="resetSched" type="button" hidden>Reset to config</button>
+        </div>
+        <div class="timeline" id="timeline" aria-label="Today's schedule"></div>
+        <div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        <div class="table-wrap">
+          <table class="windows">
+            <thead><tr><th>#</th><th>App</th><th>Days</th><th>From</th><th>To</th><th title="Panel brightness while this window is on (blank = the slider)">Bright</th><th></th></tr></thead>
+            <tbody id="windows"></tbody>
+          </table>
+        </div>
+        <div class="buttons"><button id="addWindow" type="button">Add window</button></div>
+        <label class="default-row">When no window applies, show <select id="defaultApp"></select></label>
+        <div class="buttons">
+          <button class="primary" id="saveSched" type="button" disabled>Save schedule</button>
+          <button id="undoSched" type="button" hidden>Discard changes</button>
+        </div>
+        <div class="msg" id="schedMsg" role="status" aria-live="polite"></div>
+        <p class="hint">Windows are checked top to bottom: the first one that's on now and whose app is healthy gets the panel. If its app is down, the next window does, then the default. A "To" time earlier than "From" runs past midnight. Times are <span id="tz"></span>.</p>
+      </section>
+    </div>
   </div>
+</section>
 
-  <div class="col">
-    <section class="card" aria-labelledby="apps-label">
-      <h2 id="apps-label">Apps</h2>
-      <div id="modules"></div>
-    </section>
+<section class="section" data-section="apps" aria-labelledby="apps-title">
+  <header class="section-head">
+    <h2 id="apps-title"><button class="toggle" type="button" aria-expanded="true" aria-controls="apps-body">Apps</button></h2>
+    <span class="section-sum" id="appsSum"></span>
+  </header>
+  <div class="section-body" id="apps-body">
+    <div class="apps" id="modules"></div>
+    <p id="no-modules" class="hint" hidden>No apps registered. Copy <code>hcontroller.example.yaml</code> to
+      <code>hcontroller.yaml</code> in the folder you start HController from (or pass <code>--config</code>), then restart it.</p>
   </div>
-</div>
+</section>
 <script>
 const $ = (id) => document.getElementById(id);
 function el(tag, props = {}, ...children) {
@@ -237,8 +266,11 @@ function paintFrame() {
   drawFrame(new Uint8Array(buffer, 5), view.getUint16(0), view.getUint16(2));
 }
 
+let stream = null;  // the /display/stream socket; open only while the LED section is
+
 function connectStream() {
-  const ws = new WebSocket(wsUrl('/display/stream'));
+  if (stream) return;
+  const ws = stream = new WebSocket(wsUrl('/display/stream'));
   ws.binaryType = 'arraybuffer';
   ws.onmessage = (event) => {
     if (typeof event.data === 'string') return;
@@ -246,7 +278,17 @@ function connectStream() {
     pendingFrame = event.data;
     if (first) requestAnimationFrame(paintFrame);  // draw only the newest frame per screen refresh
   };
-  ws.onclose = () => setTimeout(connectStream, 2000);
+  ws.onclose = () => {
+    if (stream !== ws) return;  // closed by pauseStream
+    stream = null;
+    setTimeout(() => { if (!$('led-body').hidden) connectStream(); }, 2000);
+  };
+}
+
+function pauseStream() {
+  const ws = stream;
+  stream = null;
+  ws?.close();
 }
 
 // ------------------------------------------------------------------ now / show now / brightness
@@ -261,6 +303,11 @@ function renderDisplay() {
   if (d.next) now.append(` → ${d.next.off ? 'Off' : d.next.name} at ${clock(d.next.at)}`);
   if (d.skipped.length) now.append(el('span', { class: 'err' }, ` · skipped ${d.skipped.map(appName).join(', ')} (down)`));
   if (d.frame_error) now.append(el('div', { class: 'err' }, d.frame_error));
+
+  const sum = $('ledSum');
+  sum.textContent = `${what}${d.source === 'override' ? ' (Show now)' : ''}`
+    + (d.next ? ` → ${d.next.off ? 'Off' : d.next.name} at ${clock(d.next.at)}` : '');
+  sum.classList.toggle('err', Boolean(d.frame_error) || (!d.off && !d.module));
 
   const box = $('showNow');
   const pressed = d.override?.module;
@@ -454,12 +501,22 @@ function updateModule(status) {
     $('modules').append(card.root);
   }
   fillCard(card, status);
+  renderAppsSummary();
+}
+
+function renderAppsSummary() {
+  const all = [...modules.values()];
+  const healthy = all.filter((s) => HEALTHY.has(s.state)).length;
+  const bad = all.filter((s) => BAD.has(s.state));
+  const sum = $('appsSum');
+  sum.replaceChildren(all.length ? `${healthy} of ${all.length} healthy` : 'none registered');
+  if (bad.length) sum.append(el('span', { class: 'err' }, ` · ${bad.map((s) => `${s.name} ${STATE_LABEL[s.state] || s.state}`).join(', ')}`));
 }
 
 function buildCard(status) {
   const id = status.id;
   const c = {
-    name: el('b'), badge: el('span', { class: 'badge' }), sub: el('div', { class: 'sub' }),
+    name: el('h3'), badge: el('span', { class: 'badge' }), sub: el('div', { class: 'sub' }),
     problem: el('div', { class: 'problem' }), msg: el('div', { class: 'msg', role: 'status', 'aria-live': 'polite' }),
     start: el('button', { type: 'button' }, 'Start'), stop: el('button', { type: 'button' }, 'Stop'),
     restart: el('button', { type: 'button' }, 'Restart'),
@@ -489,7 +546,7 @@ function buildCard(status) {
     c.config.ontoggle = () => { if (c.config.open && !c.cfgLoaded) loadConfig(id, c); };
     parts.push(c.config);
   }
-  c.root = el('article', { class: 'module' }, ...parts);
+  c.root = el('article', { class: 'card' }, ...parts);
   return c;
 }
 
@@ -597,6 +654,8 @@ function connectUpdates() {
     if (m.type === 'snapshot') {
       schedule = m.schedule;
       m.modules.forEach(updateModule);
+      $('no-modules').hidden = m.modules.length > 0;
+      renderAppsSummary();
       display = m.display;
       if (!draft) renderSchedule();
       renderDisplay();
@@ -621,9 +680,37 @@ function connectUpdates() {
   };
 }
 
+// ------------------------------------------------------------------ sections
+
+// Each section collapses from its header bar. Which ones are collapsed is remembered in this browser.
+const COLLAPSED_KEY = 'hcontroller.collapsed';
+const sectionHooks = { led: (open) => (open ? connectStream() : pauseStream()) };  // no preview frames while hidden
+
+function setSection(section, open) {
+  section.classList.toggle('collapsed', !open);
+  section.querySelector('.toggle').setAttribute('aria-expanded', String(open));
+  section.querySelector('.section-body').hidden = !open;
+  sectionHooks[section.dataset.section]?.(open);
+}
+
+function initSections() {
+  let collapsed;
+  try { collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]')); } catch { collapsed = new Set(); }
+  for (const section of document.querySelectorAll('.section')) {
+    const id = section.dataset.section;
+    section.querySelector('.section-head').onclick = () => {  // the button, or anywhere on the bar
+      const open = section.classList.contains('collapsed');
+      setSection(section, open);
+      if (open) collapsed.delete(id); else collapsed.add(id);
+      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed])); } catch { /* just not remembered */ }
+    };
+    setSection(section, !collapsed.has(id));
+  }
+}
+
 setInterval(() => { for (const [id, status] of modules) fillCard(cards.get(id), status); }, 10000);
 setInterval(loadTimeline, 60000);
-connectStream();
+initSections();
 connectUpdates();
 </script>
 </body>

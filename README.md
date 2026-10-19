@@ -24,10 +24,14 @@ cp hcontroller.example.yaml hcontroller.yaml   # register your modules
 
 On Windows, use `.venv\Scripts\` in place of `.venv/bin/`. Python 3.11 or newer is required.
 
-Open **http://raspberrypi.local:1630/** (or the machine's IP) from any device on your network. There's no login, so anyone on your Wi-Fi can use it. The dashboard has four parts:
+Open **http://raspberrypi.local:1630/** (or the machine's IP) from any device on your network. There's no login, so anyone on your Wi-Fi can use it.
 
-- **Panel:** a live LED-dot preview of exactly what the panel shows. It also shows what's on now and why, what comes next, the **Show now** buttons and the brightness slider.
-- **Schedule:** a 24-hour strip of today's plan, and the list of time windows. You can add, reorder, edit and remove windows here.
+The dashboard has a section for each kind of device HController drives (just the LED panel so far), then one for the apps. Click a section's header to collapse it, and it shows a one-line summary instead. Your browser remembers which sections you've collapsed.
+
+- **LED panel:**
+  - A live LED-dot preview of exactly what the panel shows, with what's on now and why, and what comes next. The preview only streams while the section is open.
+  - The **Show now** buttons and the brightness slider.
+  - The **Schedule:** a 24-hour strip of today's plan, and the list of time windows. You can add, reorder, edit and remove windows here.
 - **Apps:** each module's status, uptime and restarts, plus Start / Stop / Restart, an **Open** link to the app's own page, its live **Logs**, and its **Config file** editor.
 
 ## Modules
