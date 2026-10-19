@@ -1,0 +1,45 @@
+[project]
+name = "hcontroller"
+version = "0.1.0"
+description = "Central controller for LAN module apps and the shared LED panel"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "websockets>=12",
+    "pydantic>=2.6",
+    "pyyaml>=6",
+    "tzdata; sys_platform == 'win32'",  # Windows has no IANA zone database for zoneinfo
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "Pillow>=10",
+]
+# The LED driver. rpi-rgb-led-matrix's Python bindings are built from source on the Pi (see README).
+panel = ["Pillow>=10"]
+# Try the LED driver without hardware: hcontroller-panel --emulate
+emulator = ["Pillow>=10", "RGBMatrixEmulator>=0.11"]
+
+[project.scripts]
+hcontroller = "hcontroller.__main__:main"
+hcontroller-panel = "hcontroller.panel.driver:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+hcontroller = ["api/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
