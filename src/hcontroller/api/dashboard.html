@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HController</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; padding: 16px; background: #111; color: #ddd; font: 14px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 16px; margin: 0 0 12px; color: #999; font-weight: 500; }
+  h2 { font-size: 15px; margin: 0; color: #eee; font-weight: 600; }
+  .status { float: right; font-size: 12px; }
+  .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  .panel { background: #000; border: 6px solid #222; border-radius: 6px; padding: 6px; line-height: 0; }
+  .panel canvas { width: 100%; height: auto; aspect-ratio: 2 / 1; display: block; }
+  .now { margin-top: 8px; font-size: 13px; color: #aaa; }
+  .now b { color: #fff; }
+  .err { color: #f77; }
+  .card { background: #1a1a1a; border-radius: 8px; padding: 12px 14px 14px; margin-top: 16px; }
+  .col > .card:first-child { margin-top: 0; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .head .right { margin-left: auto; }
+  .sub { color: #888; font-size: 12px; }
+  .hint { color: #777; font-size: 12px; margin: 8px 0 0; }
+  .msg { min-height: 1.4em; margin-top: 8px; color: #8c8; font-size: 13px; }
+  .msg.err { color: #f77; }
+
+  button, a.button { background: #2a2a2a; color: #eee; border: 1px solid #3a3a3a; border-radius: 6px; padding: 6px 11px;
+                     font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+  button:hover:not(:disabled), a.button:hover { background: #353535; border-color: #555; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:focus-visible, a.button:focus-visible { outline: 2px solid #6af; outline-offset: 2px; }
+  button.primary { background: #2f5fb0; border-color: #2f5fb0; color: #fff; }
+  button.primary:hover:not(:disabled) { background: #3a6fc8; }
+  button[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff; }
+  button.down { border-style: dashed; color: #999; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+
+  .brightness { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: #aaa; font-size: 13px; }
+  .brightness input { flex: 1; accent-color: #6af; }
+  .brightness span { min-width: 9em; text-align: right; }
+
+  /* schedule */
+  .timeline { position: relative; height: 30px; margin-top: 12px; border-radius: 4px; overflow: hidden; background: #222; }
+  .seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 11px;
+         font-weight: 600; color: #000; overflow: hidden; white-space: nowrap; border-right: 1px solid #111; min-width: 2px; }
+  .seg.off { background: repeating-linear-gradient(45deg, #1c1c1c, #1c1c1c 4px, #262626 4px, #262626 8px); color: #777; }
+  .nowline { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 4px #000; }
+  .ticks { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-top: 2px; }
+  .table-wrap { overflow-x: auto; }
+  table.windows { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .windows th { text-align: left; color: #888; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 4px; }
+  .windows td { padding: 5px 4px; vertical-align: top; border-top: 1px solid #262626; }
+  .windows .empty { color: #777; font-size: 12px; padding: 10px 4px; }
+  select, input[type=time], input[type=number], textarea {
+    background: #111; color: #eee; border: 1px solid #333; border-radius: 6px; padding: 5px 6px; font: inherit; font-size: 13px; }
+  select:focus, input:focus, textarea:focus { outline: 2px solid #6af; outline-offset: 0; border-color: transparent; }
+  input[type=number] { width: 4.2em; }
+  .days { display: flex; gap: 2px; margin-top: 4px; }
+  .days label { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #999; }
+  .days input { margin: 0; }
+  .row-actions { white-space: nowrap; }
+  .row-actions button { padding: 3px 8px; }
+  .default-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; color: #aaa; font-size: 13px; }
+
+  /* apps */
+  .module { border-top: 1px solid #262626; padding: 12px 0 4px; }
+  .module:first-child { border-top: 0; padding-top: 8px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; background: #333; color: #ddd; }
+  .badge.good { background: #1d5e2e; color: #d6ffe0; }
+  .badge.bad { background: #6a1f1f; color: #ffd9d9; }
+  .badge.warn { background: #6a5310; color: #fff3cf; }
+  .problem { color: #f99; font-size: 12px; margin-top: 4px; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: #bbb; font-size: 13px; }
+  summary:focus-visible { outline: 2px solid #6af; outline-offset: 2px; border-radius: 4px; }
+  pre.log { background: #0b0b0b; padding: 8px; border-radius: 6px; max-height: 340px; overflow: auto; margin: 6px 0 0;
+            font: 11.5px/1.35 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; color: #bbb; }
+  pre.log .hc { color: #7ab8ff; }
+  textarea { width: 100%; min-height: 280px; margin-top: 6px; font: 12px/1.45 ui-monospace, Menlo, monospace; tab-size: 2; }
+</style>
+</head>
+<body>
+<h1>HController <span class="status" id="status">connecting…</span></h1>
+<div class="wrap">
+  <div class="col">
+    <div class="panel"><canvas id="led" width="768" height="384" aria-label="LED panel preview"></canvas></div>
+    <div class="now" id="now" role="status" aria-live="polite"></div>
+
+    <section class="card" aria-labelledby="show-label">
+      <div class="head">
+        <h2 id="show-label">Show now</h2>
+        <button class="right" id="resume" type="button" hidden>Resume schedule</button>
+      </div>
+      <div class="buttons" id="showNow"></div>
+      <label class="brightness">Brightness <input type="range" id="brightness" min="1" max="100"> <span id="brightnessVal"></span></label>
+      <div class="msg" id="showMsg" role="status" aria-live="polite"></div>
+      <p class="hint">Show now holds the panel until the schedule's next change, or until you press Resume schedule.</p>
+    </section>
+
+    <section class="card" aria-labelledby="sched-label">
+      <div class="head">
+        <h2 id="sched-label">Schedule</h2>
+        <span class="sub" id="schedSource"></span>
+        <button class="right" id="resetSched" type="button" hidden>Reset to config</button>
+      </div>
+      <div class="timeline" id="timeline" aria-label="Today's schedule"></div>
+      <div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+      <div class="table-wrap">
+        <table class="windows">
+          <thead><tr><th>#</th><th>App</th><th>Days</th><th>From</th><th>To</th><th title="Panel brightness while this window is on (blank = the slider)">Bright</th><th></th></tr></thead>
+          <tbody id="windows"></tbody>
+        </table>
+      </div>
+      <div class="buttons"><button id="addWindow" type="button">Add window</button></div>
+      <label class="default-row">When no window applies, show <select id="defaultApp"></select></label>
+      <div class="buttons">
+        <button class="primary" id="saveSched" type="button" disabled>Save schedule</button>
+        <button id="undoSched" type="button" hidden>Discard changes</button>
+      </div>
+      <div class="msg" id="schedMsg" role="status" aria-live="polite"></div>
+      <p class="hint">Windows are checked top to bottom: the first one that's on now and whose app is healthy gets the panel. If its app is down, the next window does, then the default. A "To" time earlier than "From" runs past midnight. Times are <span id="tz"></span>.</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" aria-labelledby="apps-label">
+      <h2 id="apps-label">Apps</h2>
+      <div id="modules"></div>
+    </section>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === 'class') node.className = value;
+    else if (key in node) node[key] = value;
+    else node.setAttribute(key, value);
+  }
+  node.append(...children);
+  return node;
+}
+const wsUrl = (path) => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`;
+
+const HEALTHY = new Set(['healthy', 'external-up']);
+const BAD = new Set(['crashed', 'unhealthy', 'conflict', 'external-down']);
+const WARN = new Set(['starting', 'stopping', 'backoff', 'checking']);
+const STATE_LABEL = { 'external-up': 'up', 'external-down': 'down', backoff: 'restarting' };
+const PALETTE = ['#4da3ff', '#ffb000', '#5fd38d', '#ff6f91', '#b48cff', '#40d4d4', '#ff8a4c', '#c8e65a'];
+const DAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAY_GROUPS = { daily: DAY_NAMES, weekdays: DAY_NAMES.slice(0, 5), weekends: ['sat', 'sun'] };
+
+const modules = new Map();  // id -> latest status
+const cards = new Map();    // id -> DOM handles
+let display = null;         // GET /api/display
+let schedule = null;        // GET /api/display/schedule
+let draft = null;           // the schedule being edited, until saved or discarded
+let today = null;           // the controller's local date (YYYY-MM-DD)
+
+async function api(method, path, body) {
+  const init = { method, headers: {} };
+  if (body !== undefined) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+  const r = await fetch(path, init);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const detail = data.detail;
+    throw new Error(typeof detail === 'string' ? detail : detail ? JSON.stringify(detail) : `${r.status} ${r.statusText}`);
+  }
+  return data;
+}
+
+function say(target, text, isError = false) {
+  const node = typeof target === 'string' ? $(target) : target;
+  node.textContent = text;
+  node.classList.toggle('err', isError);
+}
+
+// "2026-10-19T07:00:00-04:00" -> "07:00" (the controller's wall clock), with the weekday if it isn't today.
+function clock(iso) {
+  const time = iso.slice(11, 16);
+  if (!today || iso.slice(0, 10) === today) return time;
+  const day = new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString([], { weekday: 'short' });
+  return `${day} ${time}`;
+}
+
+function since(iso) {
+  let s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60); if (h < 48) return `${h}h ${m % 60}m`;
+  return `${Math.floor(h / 24)}d ${h % 24}h`;
+}
+
+const appName = (id) => id === 'off' ? 'Off' : (modules.get(id)?.name || schedule?.apps.find((a) => a.id === id)?.name || id);
+function appColor(id) {
+  const index = schedule ? schedule.apps.findIndex((a) => a.id === id) : -1;
+  return PALETTE[Math.max(0, index) % PALETTE.length];
+}
+
+// ------------------------------------------------------------------ panel preview
+
+// Frames arrive on /display/stream: a 5-byte header (width, height as uint16, brightness)
+// then width*height RGB bytes. Drawn as LED dots, like nhlscreen's preview.
+const UNLIT = '#161616';
+let pendingFrame = null;
+
+function drawFrame(bytes, w, h) {
+  const canvas = $('led');
+  const pitch = Math.max(2, Math.floor(1536 / w));
+  if (canvas.width !== w * pitch) { canvas.width = w * pitch; canvas.height = h * pitch; }
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const r = pitch * 0.42;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 3, red = bytes[i], green = bytes[i + 1], blue = bytes[i + 2];
+      ctx.fillStyle = red | green | blue ? `rgb(${red},${green},${blue})` : UNLIT;
+      ctx.beginPath();
+      ctx.arc(x * pitch + pitch / 2, y * pitch + pitch / 2, r, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  }
+}
+
+function paintFrame() {
+  const buffer = pendingFrame;
+  pendingFrame = null;
+  if (!buffer || buffer.byteLength < 5) return;
+  const view = new DataView(buffer);
+  drawFrame(new Uint8Array(buffer, 5), view.getUint16(0), view.getUint16(2));
+}
+
+function connectStream() {
+  const ws = new WebSocket(wsUrl('/display/stream'));
+  ws.binaryType = 'arraybuffer';
+  ws.onmessage = (event) => {
+    if (typeof event.data === 'string') return;
+    const first = pendingFrame === null;
+    pendingFrame = event.data;
+    if (first) requestAnimationFrame(paintFrame);  // draw only the newest frame per screen refresh
+  };
+  ws.onclose = () => setTimeout(connectStream, 2000);
+}
+
+// ------------------------------------------------------------------ now / show now / brightness
+
+function renderDisplay() {
+  if (!display) return;
+  const d = display;
+  const now = $('now');
+  const what = d.off ? 'Off' : d.module ? d.name : 'Nothing (no app is healthy)';
+  const why = d.source === 'override' ? 'Show now' : d.source === 'default' ? 'default' : d.source === 'none' ? '' : d.reason;
+  now.replaceChildren('Now: ', el('b', {}, what), why ? ` · ${why}` : '');
+  if (d.next) now.append(` → ${d.next.off ? 'Off' : d.next.name} at ${clock(d.next.at)}`);
+  if (d.skipped.length) now.append(el('span', { class: 'err' }, ` · skipped ${d.skipped.map(appName).join(', ')} (down)`));
+  if (d.frame_error) now.append(el('div', { class: 'err' }, d.frame_error));
+
+  const box = $('showNow');
+  const pressed = d.override?.module;
+  box.replaceChildren();
+  for (const app of schedule?.apps || []) {
+    const status = modules.get(app.id);
+    const button = el('button', { type: 'button', 'aria-pressed': String(pressed === app.id) },
+      el('span', { class: 'swatch', style: `background:${appColor(app.id)}` }), app.name);
+    if (status && !HEALTHY.has(status.state)) {
+      button.classList.add('down');
+      button.title = status.process === 'scheduled' ? `${app.name} isn't running; Show now starts it` : `${app.name} is ${status.state}`;
+    }
+    button.onclick = () => showNow(app.id);
+    box.append(button);
+  }
+  const off = el('button', { type: 'button', 'aria-pressed': String(pressed === 'off') }, 'Panel off');
+  off.onclick = () => showNow('off');
+  box.append(off);
+  $('resume').hidden = !d.override;
+
+  const slider = $('brightness');
+  if (document.activeElement !== slider) slider.value = d.base_brightness;
+  $('brightnessVal').textContent = d.brightness !== d.base_brightness && !d.off
+    ? `${d.base_brightness} (window: ${d.brightness})` : String(d.base_brightness);
+}
+
+async function showNow(id) {
+  try {
+    display = await api('POST', '/api/display/show', { module: id });
+    renderDisplay();
+    const until = display.override?.until;
+    say('showMsg', `${appName(id)} until ${until ? clock(until) : 'you resume the schedule'}`);
+  } catch (e) { say('showMsg', e.message, true); }
+}
+
+$('resume').onclick = async () => {
+  try {
+    display = await api('DELETE', '/api/display/show');
+    renderDisplay();
+    say('showMsg', 'Back to the schedule');
+  } catch (e) { say('showMsg', e.message, true); }
+};
+
+$('brightness').oninput = () => { $('brightnessVal').textContent = $('brightness').value; };
+$('brightness').onchange = async () => {
+  try {
+    display = await api('PUT', '/api/display', { brightness: Number($('brightness').value) });
+    renderDisplay();
+  } catch (e) { say('showMsg', e.message, true); }
+};
+
+// ------------------------------------------------------------------ schedule
+
+function working() { return draft || { windows: schedule.windows, default: schedule.default }; }
+
+function edit() {
+  if (!draft) draft = JSON.parse(JSON.stringify({ windows: schedule.windows, default: schedule.default }));
+  $('saveSched').disabled = false;
+  $('undoSched').hidden = false;
+  return draft;
+}
+
+function appOptions(selected) {
+  const options = [
+    ...schedule.apps.map((a) => el('option', { value: a.id }, a.name)),
+    el('option', { value: 'off' }, 'Off (dark)'),
+  ];
+  for (const option of options) option.selected = option.value === selected;
+  return options;
+}
+
+function renderSchedule() {
+  if (!schedule) return;
+  const s = working();
+  $('tz').textContent = `${schedule.timezone} time`;
+  $('schedSource').textContent = draft ? 'unsaved changes' : schedule.custom ? 'edited here' : 'from hcontroller.yaml';
+  $('resetSched').hidden = !schedule.custom;
+  $('saveSched').disabled = !draft;
+  $('undoSched').hidden = !draft;
+  const body = $('windows');
+  body.replaceChildren();
+  s.windows.forEach((w, i) => body.append(windowRow(w, i, s.windows.length)));
+  if (!s.windows.length) {
+    body.append(el('tr', {}, el('td', { class: 'empty', colSpan: 7 }, 'No windows: the panel always shows the default below.')));
+  }
+  const choice = $('defaultApp');
+  choice.replaceChildren(...appOptions(s.default));
+  choice.onchange = () => { edit().default = choice.value; renderSchedule(); };
+}
+
+function windowRow(w, i, count) {
+  const app = el('select', { 'aria-label': `Window ${i + 1} app` }, ...appOptions(w.module));
+  app.onchange = () => { edit().windows[i].module = app.value; renderSchedule(); };
+
+  const mode = typeof w.days === 'string' ? w.days : 'custom';
+  const daysMode = el('select', { 'aria-label': `Window ${i + 1} days` },
+    ...['daily', 'weekdays', 'weekends', 'custom'].map((v) => el('option', { value: v, selected: v === mode }, v[0].toUpperCase() + v.slice(1))));
+  const chosen = typeof w.days === 'string' ? DAY_GROUPS[w.days] : w.days;
+  const toggles = el('div', { class: 'days', hidden: mode !== 'custom' });
+  for (const day of DAY_NAMES) {
+    const box = el('input', { type: 'checkbox', checked: chosen.includes(day), 'aria-label': day });
+    box.onchange = () => {
+      edit().windows[i].days = DAY_NAMES.filter((_, j) => toggles.querySelectorAll('input')[j].checked);
+      renderSchedule();
+    };
+    toggles.append(el('label', { title: day }, box, day.slice(0, 2)));
+  }
+  daysMode.onchange = () => {
+    const target = edit().windows[i];
+    target.days = daysMode.value === 'custom' ? [...(typeof target.days === 'string' ? DAY_GROUPS[target.days] : target.days)] : daysMode.value;
+    renderSchedule();
+  };
+
+  const start = el('input', { type: 'time', value: w.start, 'aria-label': `Window ${i + 1} from` });
+  start.onchange = () => { edit().windows[i].start = start.value; renderSchedule(); };
+  const end = el('input', { type: 'time', value: w.end === '24:00' ? '00:00' : w.end, 'aria-label': `Window ${i + 1} to` });
+  end.onchange = () => { edit().windows[i].end = end.value; renderSchedule(); };
+  const bright = el('input', { type: 'number', min: 1, max: 100, placeholder: '–', value: w.brightness ?? '', 'aria-label': `Window ${i + 1} brightness` });
+  bright.onchange = () => { edit().windows[i].brightness = bright.value === '' ? null : Number(bright.value); renderSchedule(); };
+
+  const up = el('button', { type: 'button', title: 'Move up (checked first)', disabled: i === 0, 'aria-label': `Move window ${i + 1} up` }, '↑');
+  up.onclick = () => move(i, -1);
+  const down = el('button', { type: 'button', title: 'Move down', disabled: i === count - 1, 'aria-label': `Move window ${i + 1} down` }, '↓');
+  down.onclick = () => move(i, 1);
+  const remove = el('button', { type: 'button', title: 'Remove', 'aria-label': `Remove window ${i + 1}` }, '✕');
+  remove.onclick = () => { edit().windows.splice(i, 1); renderSchedule(); };
+
+  return el('tr', {},
+    el('td', { class: 'sub' }, String(i + 1)),
+    el('td', {}, app), el('td', {}, daysMode, toggles), el('td', {}, start), el('td', {}, end), el('td', {}, bright),
+    el('td', { class: 'row-actions' }, up, ' ', down, ' ', remove));
+}
+
+function move(i, delta) {
+  const windows = edit().windows;
+  const [w] = windows.splice(i, 1);
+  windows.splice(i + delta, 0, w);
+  renderSchedule();
+}
+
+$('addWindow').onclick = () => {
+  edit().windows.push({ module: schedule.apps[0]?.id || 'off', days: 'daily', start: '18:00', end: '23:00', brightness: null });
+  renderSchedule();
+};
+$('undoSched').onclick = () => { draft = null; renderSchedule(); say('schedMsg', ''); };
+$('saveSched').onclick = async () => {
+  try {
+    schedule = await api('PUT', '/api/display/schedule', { schedule: draft });
+    draft = null;
+    renderSchedule();
+    loadTimeline();
+    say('schedMsg', 'Saved');
+  } catch (e) { say('schedMsg', e.message, true); }
+};
+$('resetSched').onclick = async () => {
+  try {
+    schedule = await api('PUT', '/api/display/schedule', { schedule: null });
+    draft = null;
+    renderSchedule();
+    loadTimeline();
+    say('schedMsg', 'Back to the schedule in hcontroller.yaml');
+  } catch (e) { say('schedMsg', e.message, true); }
+};
+
+async function loadTimeline() {
+  try {
+    const t = await api('GET', '/api/display/timeline');
+    today = t.date;
+    const strip = $('timeline');
+    strip.replaceChildren();
+    for (const s of t.segments) {
+      const seg = el('div', { class: s.module ? 'seg' : 'seg off' }, s.module ? appName(s.module) : 'off');
+      seg.style.left = `${s.from * 100}%`;
+      seg.style.width = `${(s.to - s.from) * 100}%`;
+      if (s.module) seg.style.background = appColor(s.module);
+      seg.title = `${clock(s.start)}–${s.end.slice(11, 16)} · ${s.module ? appName(s.module) : 'off'} (${s.window === null ? 'default' : `window ${s.window + 1}`})`;
+      strip.append(seg);
+    }
+    if (t.now !== null) strip.append(el('div', { class: 'nowline', style: `left:${t.now * 100}%` }));
+  } catch (e) { /* controller restarting; try again next minute */ }
+}
+
+// ------------------------------------------------------------------ apps
+
+function updateModule(status) {
+  modules.set(status.id, status);
+  let card = cards.get(status.id);
+  if (!card) {
+    card = buildCard(status);
+    cards.set(status.id, card);
+    $('modules').append(card.root);
+  }
+  fillCard(card, status);
+}
+
+function buildCard(status) {
+  const id = status.id;
+  const c = {
+    name: el('b'), badge: el('span', { class: 'badge' }), sub: el('div', { class: 'sub' }),
+    problem: el('div', { class: 'problem' }), msg: el('div', { class: 'msg', role: 'status', 'aria-live': 'polite' }),
+    start: el('button', { type: 'button' }, 'Start'), stop: el('button', { type: 'button' }, 'Stop'),
+    restart: el('button', { type: 'button' }, 'Restart'),
+    open: el('a', { class: 'button', target: '_blank', rel: 'noopener' }, 'Open ↗'),
+    logPre: el('pre', { class: 'log', tabIndex: 0 }), lastSeq: null, logTimer: null,
+  };
+  c.start.onclick = () => act(id, 'start', c);
+  c.stop.onclick = () => act(id, 'stop', c);
+  c.restart.onclick = () => act(id, 'restart', c);
+  c.logs = el('details', {}, el('summary', {}, 'Logs'), c.logPre);
+  c.logs.ontoggle = () => { if (c.logs.open) pollLogs(id, c); else clearTimeout(c.logTimer); };
+
+  const parts = [el('div', { class: 'head' }, c.name, c.badge), c.sub, c.problem,
+    el('div', { class: 'buttons' }, c.start, c.stop, c.restart, c.open), c.msg, c.logs];
+  if (status.config) {
+    c.text = el('textarea', { spellcheck: false, 'aria-label': `${status.name} config file` });
+    c.cfgInfo = el('div', { class: 'sub' });
+    c.cfgMsg = el('div', { class: 'msg', role: 'status', 'aria-live': 'polite' });
+    const save = el('button', { type: 'button', class: 'primary' }, 'Save');
+    const saveRestart = el('button', { type: 'button' }, 'Save & restart');
+    c.revert = el('button', { type: 'button', title: 'Put back the file as it was before the last save, and restart' }, 'Revert last save');
+    save.onclick = () => saveConfig(id, c, false);
+    saveRestart.onclick = () => saveConfig(id, c, true);
+    c.revert.onclick = () => revertConfig(id, c);
+    c.config = el('details', {}, el('summary', {}, 'Config file'), c.cfgInfo, c.text,
+      el('div', { class: 'buttons' }, save, saveRestart, c.revert), c.cfgMsg);
+    c.config.ontoggle = () => { if (c.config.open && !c.cfgLoaded) loadConfig(id, c); };
+    parts.push(c.config);
+  }
+  c.root = el('article', { class: 'module' }, ...parts);
+  return c;
+}
+
+function fillCard(c, s) {
+  c.name.textContent = s.name;
+  c.badge.textContent = STATE_LABEL[s.state] || s.state;
+  c.badge.className = 'badge ' + (HEALTHY.has(s.state) ? 'good' : BAD.has(s.state) ? 'bad' : WARN.has(s.state) ? 'warn' : '');
+  const bits = [];
+  if (s.kind === 'external') {
+    bits.push(`runs elsewhere: ${s.url}`);
+  } else {
+    bits.push(s.process === 'scheduled' ? 'runs around its schedule' : 'runs all the time');
+    if (s.pid) bits.push(`pid ${s.pid}`);
+    if (s.started_at) bits.push(`up ${since(s.started_at)}`);
+    if (s.restart_count) bits.push(`${s.restart_count} restart${s.restart_count === 1 ? '' : 's'}`);
+    if (s.hold) bits.push(`kept ${s.hold.running ? 'running' : 'stopped'} ${s.hold.until ? `until ${clock(s.hold.until)}` : 'by you'}`);
+  }
+  if (s.display) bits.push('LED panel app');
+  c.sub.textContent = bits.join(' · ');
+  c.problem.textContent = s.message || '';
+  c.problem.hidden = !s.message;
+
+  const local = s.kind === 'local';
+  for (const b of [c.start, c.stop, c.restart]) b.hidden = !local;
+  const idle = s.state === 'stopped' || s.state === 'crashed';
+  c.start.disabled = !idle;
+  c.stop.disabled = idle;
+  if (s.ui) {
+    c.open.hidden = false;
+    c.open.href = s.ui.loopback ? `${s.ui.scheme}://${location.hostname}:${s.ui.port}${s.ui.path}` : s.ui.url;
+    c.open.title = s.ui.loopback ? `${s.name}'s own page on port ${s.ui.port} (the app must listen on 0.0.0.0 for other devices to reach it)` : s.ui.url;
+  } else {
+    c.open.hidden = true;
+  }
+}
+
+async function act(id, action, c) {
+  say(c.msg, '');
+  try { updateModule(await api('POST', `/api/modules/${id}/${action}`)); renderDisplay(); }
+  catch (e) { say(c.msg, e.message, true); }
+}
+
+async function pollLogs(id, c) {
+  clearTimeout(c.logTimer);
+  if (!c.logs.open) return;
+  try {
+    const query = c.lastSeq === null ? 'lines=300' : `after=${c.lastSeq}&lines=1000`;
+    const r = await api('GET', `/api/modules/${id}/logs?${query}`);
+    if (c.lastSeq !== null && r.last < c.lastSeq) {  // HController restarted: start over
+      c.logPre.replaceChildren();
+      c.lastSeq = null;
+      return pollLogs(id, c);
+    }
+    const pre = c.logPre;
+    const stick = c.lastSeq === null || pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 8;
+    for (const line of r.lines) {
+      const text = line.source === 'hcontroller'
+        ? `[${new Date(line.time).toLocaleTimeString([], { hour12: false })}] ${line.text}\n` : `${line.text}\n`;
+      pre.append(el('span', { class: line.source === 'hcontroller' ? 'hc' : '' }, text));
+    }
+    while (pre.childNodes.length > 1500) pre.firstChild.remove();
+    if (!pre.childNodes.length) pre.textContent = '';
+    c.lastSeq = r.last;
+    if (stick) pre.scrollTop = pre.scrollHeight;
+  } catch (e) { /* try again shortly */ }
+  c.logTimer = setTimeout(() => pollLogs(id, c), 2000);
+}
+
+function setConfig(c, r) {
+  c.text.value = r.text;
+  c.cfgLoaded = true;
+  c.cfgInfo.textContent = r.exists ? r.path
+    : `${r.path} doesn't exist yet${r.from_example ? `; showing ${r.example}.` : '.'} Saving creates it.`;
+  c.revert.disabled = !r.backup;
+}
+
+async function loadConfig(id, c) {
+  try { setConfig(c, await api('GET', `/api/modules/${id}/config`)); }
+  catch (e) { say(c.cfgMsg, e.message, true); }
+}
+
+async function saveConfig(id, c, restart) {
+  try {
+    const r = await api('PUT', `/api/modules/${id}/config?restart=${restart}`, { text: c.text.value });
+    setConfig(c, r);
+    say(c.cfgMsg, r.restarted ? 'Saved and restarted' : restart ? "Saved (it isn't running, so nothing to restart)" : 'Saved; restart the app to use it');
+  } catch (e) { say(c.cfgMsg, e.message, true); }
+}
+
+async function revertConfig(id, c) {
+  try {
+    const r = await api('POST', `/api/modules/${id}/config/revert?restart=true`);
+    setConfig(c, r);
+    say(c.cfgMsg, r.restarted ? 'Put back the previous file and restarted' : 'Put back the previous file');
+  } catch (e) { say(c.cfgMsg, e.message, true); }
+}
+
+// ------------------------------------------------------------------ live updates
+
+function connectUpdates() {
+  const ws = new WebSocket(wsUrl('/ws'));
+  ws.onopen = () => { $('status').textContent = 'live'; };
+  ws.onmessage = (event) => {
+    const m = JSON.parse(event.data);
+    if (m.type === 'snapshot') {
+      schedule = m.schedule;
+      m.modules.forEach(updateModule);
+      display = m.display;
+      if (!draft) renderSchedule();
+      renderDisplay();
+      loadTimeline();
+    } else if (m.type === 'module') {
+      updateModule(m.module);
+      renderDisplay();
+    } else if (m.type === 'display') {
+      display = m.display;
+      renderDisplay();
+    } else if (m.type === 'schedule') {
+      schedule = m.schedule;
+      if (draft) say('schedMsg', 'The schedule was changed from somewhere else. Saving now will replace that change; Discard changes loads it.', true);
+      else renderSchedule();
+      loadTimeline();
+      renderDisplay();
+    }
+  };
+  ws.onclose = () => {
+    $('status').textContent = 'reconnecting…';
+    setTimeout(connectUpdates, 2000);
+  };
+}
+
+setInterval(() => { for (const [id, status] of modules) fillCard(cards.get(id), status); }, 10000);
+setInterval(loadTimeline, 60000);
+connectStream();
+connectUpdates();
+</script>
+</body>
+</html>
