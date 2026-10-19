@@ -36,7 +36,7 @@ The dashboard has a section for each kind of device HController drives (just the
 
 ## Modules
 
-A module is any program; everything below is optional, and each piece unlocks a feature:
+A module is any program; everything below is optional, and each piece unlocks a feature. **Writing a new module?** [docs/modules.md](docs/modules.md) is the full contract: what HController sends, what it expects back, the timings, and a template to start from.
 
 | In `hcontroller.yaml` | What HController does with it |
 |---|---|
@@ -181,4 +181,5 @@ src/hcontroller/
   api/app.py             REST + WebSockets; api/dashboard.html
 tools/testpattern.py     stand-in module for tests and demos
 deploy/                  systemd units
+docs/modules.md          the module contract, for writing new modules
 ```

@@ -62,4 +62,5 @@ hcontroller.yaml -> config.py (pydantic) ──► controller.py wires:
 - Tests use real child processes (`tools/testpattern.py`) with `FAST` runner timings from `tests/conftest.py`; helper names must not start with `test`. No network beyond localhost.
 - The dashboard is re-read per request (`api/dashboard.html`), Python isn't: restart HController after backend changes.
 - Dashboard layout: one collapsible `.section` per kind of device (only `led` so far), then `apps`. A new kind of device gets its own section rather than going into the LED one. Work that should only run while a section is open (like the LED preview's frame stream) goes in `sectionHooks`.
+- `docs/modules.md` is the module contract that future modules are written against. Update it whenever what HController expects of a module changes (endpoints, headers, timings, signals, validation).
 - Update `README.md` when user-facing behavior changes. Python ≥3.11 (Raspberry Pi OS Bookworm ships 3.11).
