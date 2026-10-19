@@ -1,0 +1,23 @@
+# The LED matrix driver. Runs as root because rpi-rgb-led-matrix needs GPIO access (the library
+# drops to the 'daemon' user after setting up the hardware). HController itself stays unprivileged.
+#   sudo cp deploy/hcontroller-panel.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now hcontroller-panel
+#   journalctl -u hcontroller-panel -f
+# Flags: --chain 2 --rows 64 --cols 64 --gpio-mapping adafruit-hat (the defaults) match two
+# 64x64 panels on an Adafruit RGB Matrix Bonnet; see `hcontroller-panel --help`.
+
+[Unit]
+Description=HController LED panel driver
+After=hcontroller.service
+Wants=hcontroller.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/home/pi/HController/.venv/bin/hcontroller-panel --url ws://127.0.0.1:1630/display/stream
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

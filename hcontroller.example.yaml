@@ -1,0 +1,46 @@
+# Copy to hcontroller.yaml and edit. Every key is optional; defaults are shown.
+
+server:
+  host: 0.0.0.0        # the dashboard is for your whole LAN (there's no login)
+  port: 1630
+
+timezone: America/Toronto   # schedule times are local to this zone
+
+display:                     # the shared LED panel
+  width: 128
+  height: 64
+  fps: 10                    # frames pulled from the app on the panel, per second
+  brightness: 70             # 1-100; the dashboard slider changes it
+  default: nhlscreen         # shown when no window applies: an app, or "off" (unset = first app with a display)
+  # Ordered: the first window that's active now and whose app is healthy gets the panel. If its
+  # app is down, the next active window does, then the default. An end time earlier than the
+  # start runs past midnight. Quote the times. The dashboard can edit this list.
+  schedule:
+    - {module: off, days: daily, start: "01:00", end: "07:00"}   # panel dark overnight
+    # - {module: weather, days: weekdays, start: "07:00", end: "08:30", brightness: 40}
+    # - {module: nhlscreen, days: [sat, sun], start: "12:00", end: "23:30"}
+
+modules:
+  nhlscreen:
+    name: NHL Scoreboard
+    cwd: ~/nhlscreen
+    command: [.venv/bin/python, -m, nhlscreen]   # picks up ~/nhlscreen/config.yaml if it exists
+    url: http://127.0.0.1:9134
+    health: /health
+    ui: /                                         # set nhlscreen's server.host to 0.0.0.0 for this link to work from other devices
+    display: {frame: /render/frame}
+    config_file: config.yaml
+    config_example: config.example.yaml           # the editor starts from this until config.yaml exists
+    process: always          # always: runs all the time | scheduled: runs only around its windows
+    warmup_seconds: 60       # scheduled apps start this long before their window
+    restart: on-failure      # always | on-failure | never
+    stop_timeout: 10         # seconds between SIGTERM and SIGKILL
+    # Drop output lines matching these regexes: here, nhlscreen's access-log line for every
+    # successful frame and health check HController makes (10+ a second). Errors still show.
+    log_ignore: ['"GET /(render/frame|health) HTTP/[\d.]+" 200']
+
+  # An app on another device: HController watches it and can put it on the panel, but doesn't run it.
+  # weather:
+  #   url: http://192.168.1.40:8080
+  #   health: /health
+  #   display: {frame: /render/frame}

@@ -1,0 +1,27 @@
+# Install on the Pi:
+#   sudo cp deploy/hcontroller.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now hcontroller
+#   journalctl -u hcontroller -f          # HController and every module's output
+# Adjust User and paths if you didn't clone to /home/pi/HController.
+# HController starts its modules itself: disable their own units (e.g. nhlscreen.service).
+
+[Unit]
+Description=HController: LAN module apps and the LED panel
+# Pis have no RTC: wait for NTP so the schedule isn't working from 1970.
+After=network-online.target time-sync.target
+Wants=network-online.target time-sync.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/HController
+ExecStart=/home/pi/HController/.venv/bin/python -m hcontroller --config /home/pi/HController/hcontroller.yaml
+Restart=always
+RestartSec=5
+# Stopping HController stops its modules gracefully (SIGTERM, then SIGKILL after each
+# module's stop_timeout); give it time before systemd kills the whole cgroup.
+TimeoutStopSec=30
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
