@@ -1,5 +1,7 @@
 # HController
 
+> This project is not actively maintained, and was created with AI assistance for personal use.
+
 The hub for a set of small apps ("modules") on your local network. It starts them, keeps them running, shows their health and logs on one dashboard, edits their config files, and owns the **shared LED panel**: a schedule decides which app's frames the panel shows at any time.
 
 The first module is [nhlscreen](https://github.com/Hydrxide/nhlscreen), the NHL scoreboard. Any app that serves frames the same way can share the panel with it.
