@@ -32,6 +32,20 @@ from .runner import HttpGetter, LogBuffer, utcnow
 MAX_LINE = 4000
 
 
+def venv_program(path: Path, *, windows: bool | None = None) -> Path:
+    """A venv keeps its programs in ``bin/`` everywhere but Windows, where they're ``Scripts\\*.exe``.
+
+    So a module's ``.venv/bin/python`` finds ``.venv\\Scripts\\python.exe`` on Windows, and one
+    ``command`` works on every OS. Anything else, or a path that exists, is left alone.
+    """
+    if windows is None:
+        windows = os.name == "nt"
+    if not windows or path.exists() or path.parent.name != "bin":
+        return path
+    candidate = path.parent.parent / "Scripts" / (path.name if path.suffix else f"{path.name}.exe")
+    return candidate if candidate.exists() else path
+
+
 def exit_text(code: int) -> str:
     if code < 0:
         with contextlib.suppress(ValueError):
@@ -255,7 +269,7 @@ class LocalRunner:
         argv = list(self.spec.command or [])
         program = argv[0]
         if self.spec.cwd and not os.path.isabs(program) and ("/" in program or os.sep in program):
-            argv[0] = str(self.spec.cwd / program)
+            argv[0] = str(venv_program(self.spec.cwd / program))
         return argv
 
     def _env(self) -> dict[str, str]:

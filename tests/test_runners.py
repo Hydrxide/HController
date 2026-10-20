@@ -9,7 +9,7 @@ from conftest import FAST, TESTPATTERN, free_port, pid_alive, pattern_spec, wait
 
 from hcontroller.modules.external import ExternalRunner
 from hcontroller.modules.health import port_open
-from hcontroller.modules.local import LocalRunner
+from hcontroller.modules.local import LocalRunner, venv_program
 from hcontroller.modules.manifest import ModuleSpec
 
 
@@ -107,6 +107,24 @@ async def test_missing_program_backs_off_with_a_clear_message(http, tmp_path):
     assert "not-here doesn't exist" in r.message
     await r.stop()
     assert r.state == "stopped"
+
+
+def test_venv_bin_python_finds_the_windows_venv(tmp_path):
+    scripts = tmp_path / ".venv" / "Scripts"
+    scripts.mkdir(parents=True)
+    (scripts / "python.exe").touch()
+    unix = tmp_path / ".venv" / "bin" / "python"
+    assert venv_program(unix, windows=True) == scripts / "python.exe"
+    assert venv_program(unix, windows=False) == unix
+
+
+def test_venv_program_leaves_other_paths_alone(tmp_path):
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "python").touch()
+    assert venv_program(tmp_path / "bin" / "python", windows=True) == tmp_path / "bin" / "python"  # exists
+    # No Scripts copy either: keep the configured path, so the error names what the config says.
+    assert venv_program(tmp_path / ".venv" / "bin" / "python", windows=True) == tmp_path / ".venv" / "bin" / "python"
+    assert venv_program(tmp_path / "tools" / "run", windows=True) == tmp_path / "tools" / "run"  # not a bin/
 
 
 async def test_failing_health_check_marks_unhealthy(http):
