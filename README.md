@@ -15,7 +15,7 @@ The first module is [nhlscreen](https://github.com/Hydrxide/nhlscreen), the NHL 
 
 This README is a setup guide. It works on a **Raspberry Pi** (the real board), and on a **Mac, Linux PC or Windows PC** for trying things out. Only the Pi can drive the LED panel itself; everywhere else, the dashboard's live preview shows exactly what the panel would.
 
-**Contents:** [What you need](#what-you-need) · [1. Install](#1-install) · [2. Add your modules](#2-add-your-modules) · [3. Start it](#3-start-it) · [4. Start it at boot (Pi / Linux)](#4-start-it-at-boot-pi--linux) · [5. Connect the LED panel (Pi)](#5-connect-the-led-panel-pi) · [Using the dashboard](#using-the-dashboard) · [The LED panel and its schedule](#the-led-panel-and-its-schedule) · [Modules](#modules) · [Troubleshooting](#troubleshooting) · [For developers](#for-developers)
+**Contents:** [What you need](#what-you-need) · [1. Install](#1-install) · [2. Add your modules](#2-add-your-modules) · [3. Start it](#3-start-it) · [4. Start it at boot (Pi / Linux)](#4-start-it-at-boot-pi--linux) · [5. Connect the LED panel (Pi)](#5-connect-the-led-panel-pi) · [Using the dashboard](#using-the-dashboard) · [The LED panel and its schedule](#the-led-panel-and-its-schedule) · [Modules](#modules) · [Troubleshooting](#troubleshooting) · [For developers](#for-developers) · [License](#license)
 
 ## What you need
 
@@ -325,3 +325,7 @@ tools/testpattern.py     stand-in module for tests and demos
 deploy/                  systemd units
 docs/modules.md          the module contract, for writing new modules
 ```
+
+## License
+
+MIT; see [LICENSE](LICENSE). The LED driver uses [rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix), which is GPL-2.0 and installed separately; it isn't part of this repository.
