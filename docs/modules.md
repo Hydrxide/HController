@@ -45,6 +45,7 @@ Every module needs at least a `command` (HController runs it) or a `url` (HContr
 - **Command:** `command` is an argument list, not a shell string, so there's no shell expansion, pipes or `&&`. If the first item contains a `/` and is relative, such as `.venv/bin/python`, it's resolved against `cwd`.
 - **Working directory:** the process runs in `cwd`. A relative `cwd` is relative to `hcontroller.yaml`, and `~` is expanded.
 - **Environment:** the module gets HController's own environment, plus `PYTHONUNBUFFERED=1`, plus anything in `env`. On the Pi, HController runs under systemd, which sets only a minimal `PATH`. Point `command` at the module's own venv, such as `.venv/bin/python`, rather than relying on `python` being on the `PATH`.
+- **Windows:** a venv keeps its programs in `.venv\Scripts\` as `.exe` files, not in `.venv/bin/`. When a `command` names `<dir>/bin/<program>` relative to `cwd` and that doesn't exist, HController runs `<dir>\Scripts\<program>.exe` if it does. So `[.venv/bin/python, -m, <module>]` works on every OS.
 - **Input and output:** stdin is `/dev/null`, and stdout and stderr are both captured (see [Output and logs](#output-and-logs)).
 - **User:** it runs as HController's user (`pi` on the Pi), never as root.
 
@@ -226,6 +227,16 @@ wc -c < frame.bin                                                               
 kill -TERM <pid>                                                                    # exits within 10 s
 ```
 
+On Windows, in PowerShell (`curl.exe`, because plain `curl` there is a different command):
+
+```powershell
+curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:9300/health               # 200 (any 2xx)
+curl.exe -s -D - -o frame.bin http://127.0.0.1:9300/render/frame                   # 200, x-width: 128, x-height: 64
+(Get-Item frame.bin).Length                                                         # 24576
+```
+
+Windows has no SIGTERM, and HController ends the process there instead, so there's no stop to check.
+
 Then stop it, so HController doesn't find the port taken and report a **conflict**, register it, and restart HController. The app should go from **starting** to **healthy** on the dashboard, and **Show now** should put it on the preview.
 
 ## Template: a minimal module
@@ -276,6 +287,13 @@ Set it up in its own folder, then register it:
 ```bash
 mkdir ~/clock && cd ~/clock          # save the code above as clock.py
 python3 -m venv .venv && .venv/bin/pip install fastapi uvicorn pillow
+```
+
+On Windows, in PowerShell:
+
+```powershell
+mkdir ~\clock; cd ~\clock            # save the code above as clock.py
+py -m venv .venv; .venv\Scripts\pip install fastapi uvicorn pillow
 ```
 
 ```yaml

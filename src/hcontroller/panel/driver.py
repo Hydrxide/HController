@@ -7,8 +7,8 @@ every frame with rpi-rgb-led-matrix, and blanks the panel if the stream goes qui
     sudo .venv/bin/hcontroller-panel                  # on the Pi
     .venv/bin/hcontroller-panel --emulate             # anywhere, via RGBMatrixEmulator
 
-Defaults match the planned hardware: two 64x64 panels chained (128x64) on an Adafruit RGB
-Matrix Bonnet.
+The defaults draw 128x64 on two chained 64x64 panels with the Adafruit HAT/Bonnet pin mapping;
+the flags cover other panels and wiring.
 """
 
 from __future__ import annotations

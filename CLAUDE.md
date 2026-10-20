@@ -1,6 +1,6 @@
 # HController: context for Claude sessions
 
-Central controller for the user's LAN apps ("modules"), running on the same Pi 4 as the LED board. It supervises modules as child processes, shows their health and logs on a dashboard, edits their config files, and **owns the shared 128×64 LED panel**: a time-window scheduler decides which app's frames reach the panel. `README.md` is the user-facing guide; this file holds the decisions and conventions.
+Central controller for the user's LAN apps ("modules"), running on the Raspberry Pi that drives the LED board. It supervises modules as child processes, shows their health and logs on a dashboard, edits their config files, and **owns the shared 128×64 LED panel**: a time-window scheduler decides which app's frames reach the panel. `README.md` is the user-facing guide; this file holds the decisions and conventions.
 
 The first module is **nhlscreen** (`~/nhlscreen`, its own repo and CLAUDE.md). It runs unmodified: HController uses its `/health`, `GET /render/frame` (raw RGB + `X-Width`/`X-Height`), `/` page and `config.yaml`.
 

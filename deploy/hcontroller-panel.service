@@ -3,8 +3,8 @@
 #   sudo cp deploy/hcontroller-panel.service /etc/systemd/system/
 #   sudo systemctl daemon-reload && sudo systemctl enable --now hcontroller-panel
 #   journalctl -u hcontroller-panel -f
-# Flags: --chain 2 --rows 64 --cols 64 --gpio-mapping adafruit-hat (the defaults) match two
-# 64x64 panels on an Adafruit RGB Matrix Bonnet; see `hcontroller-panel --help`.
+# The defaults are --rows 64 --cols 64 --chain 2 --gpio-mapping adafruit-hat (128x64 on two 64x64
+# panels). For other panels or wiring, add flags to ExecStart; see `hcontroller-panel --help`.
 
 [Unit]
 Description=HController LED panel driver
